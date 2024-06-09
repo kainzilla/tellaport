@@ -90,7 +90,7 @@ docker run -d \
 &nbsp;
 
 ### 😎 Environment Variables / Options:
-|||
+| ENV Var | Information |
 |---|---|
 |`TELLAPORT_ENABLED`|**`false`** / `true` - Whether or not to use TellAPort to update torrent client ports from Gluetun's forwarded port. **Script will not run if this isn't set to true.**|
 |`TELLAPORT_TORRENT_CLIENT`|`deluge` / `qbittorrent` / `transmission` - Which torrent client is in use. Will try to auto-detect if this isn't set.|
