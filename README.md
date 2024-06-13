@@ -99,4 +99,4 @@ docker run -d \
 |`TELLAPORT_PORT`| Web UI / API port for the torrent client - this will use the default ports when unset, or `WEBUI_PORT` if your container uses that environment variable. This is **not** the peer-listening port.|
 |`TELLAPORT_PROTOCOL`|**`http`** / `https` - Protocol used for communicating to the torrent client, the torrent clients default to HTTP. Only change this if you know you're using HTTPS instead.|
 |`TELLAPORT_TUN_IP`|IP address configured for the local tun0 / wg0 adapter, this is used to self-test if a port is able to listen on that specific IP. This can catch failing port bindings after VPN tunnel reconnection events, which is an issue that can affect Deluge and qBittorrent as of 2024-02-27. This attempts to auto-detect.|
-|`TELLAPORT_DRY_RUN`|**false** / true - Install and run the script, but don't set the port and instead print the settings to console. **For testing.**|
+|`TELLAPORT_DRY_RUN`|**`false`** / `true` - Install and run the script, but don't set the port and instead print the settings to console. **For testing.**|
