@@ -27,6 +27,18 @@
 # the UI / API to be bound only to specific IPs:
 #TELLAPORT_IP="127.0.0.1"
 
+# This is a "prefix" folder that shows up in the URL, which
+# is sometimes used if you use a "subfolder" style of reverse
+# proxy. An example of what this looks like in a full URL:
+#     https://domain.com/qbittorent/
+# An example of setting this for the above example:
+#     TELLAPORT_URL_BASE="/qbittorent/"
+# This defaults to "/" for every client EXCEPT Transmission,
+# which defaults to "/transmission/". If you have explicitly
+# disabled the default subfolder URL for Transmission, you
+# MUST set this to "/":
+# TELLAPORT_URL_BASE="/"
+
 # Web UI / API port for the torrent client - this will use
 # the default ports when unset, or WEBUI_PORT if your
 # container uses that environment variable. This is NOT the
@@ -135,6 +147,30 @@ torrentApiUser=${TELLAPORT_USER:-}
 # Set pass:
 torrentApiPass=${TELLAPORT_PASS:-}
 
+# Set the base URL folder for the torrent API:
+if ! [ -z "${TELLAPORT_URL_BASE}" ] 2> /dev/null; then
+  torrentApiUrlBase="${TELLAPORT_URL_BASE}"
+  # Check for missing leading slash:
+  if ! [[ "${torrentApiUrlBase}" =~ ^/.*$ ]] 2> /dev/null; then
+    torrentApiUrlBase="/${torrentApiUrlBase}"
+  fi
+  # Check for missing trailing slash:
+  if ! [[ "${torrentApiUrlBase}" =~ ^.*/$ ]] 2> /dev/null; then
+    torrentApiUrlBase="${torrentApiUrlBase}/"
+  fi
+else
+  # Defaults in case it's not set:
+  case $torrentClient in
+  deluge) torrentApiUrlBase="/";;
+  qbittorent) torrentApiUrlBase="/";;
+  transmission) torrentApiUrlBase="/transmission/";;
+  *)
+    echo "TellAPort: Unable to set the torrent client API URL base automatically, please set TELLAPORT_URL_BASE."
+    exit 1
+  ;;
+  esac
+fi
+
 # Set the torrent client API port:
 if ! [ -z "${TELLAPORT_PORT}" ] \
    && [ "${TELLAPORT_PORT}" -eq "${TELLAPORT_PORT}" ] 2> /dev/null; then
@@ -208,7 +244,7 @@ deluge)
   if ! curl -c /tmp/torrentApiCookie -fks \
         --header "Content-Type: application/json" \
         --data "{\"method\": \"auth.login\", \"params\": [\"${torrentApiPass}\"], \"id\": 1}" \
-        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json" &> /dev/null; then
+        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json" &> /dev/null; then
     echo "TellAPort: Failed to get Deluge cookie, is the torrent client information correct?"
     echo "Torrent client detected: ${torrentClient}"
     echo "User: ${torrentApiUser}"
@@ -216,6 +252,7 @@ deluge)
     echo "Protocol: ${torrentApiProtocol}"
     echo "IP Address: ${torrentApiIpAddress}"
     echo "Port: ${torrentApiPort}"
+    echo "URL Base: ${torrentApiUrlBase}"
     echo "Contents of /tmp/torrentApiCookie file:"
     cat /tmp/torrentApiCookie
     exit 1
@@ -225,7 +262,7 @@ qbittorent)
   if ! curl -c /tmp/torrentApiCookie -fks \
         --data "username=${torrentApiUser}" \
         --data-urlencode "password=${torrentApiPass}" \
-        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/api/v2/auth/login" &> /dev/null; then
+        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/auth/login" &> /dev/null; then
     echo "TellAPort: Failed to get qBittorrent cookie, is the torrent client information correct?"
     echo "Torrent client detected: ${torrentClient}"
     echo "User: ${torrentApiUser}"
@@ -233,6 +270,7 @@ qbittorent)
     echo "Protocol: ${torrentApiProtocol}"
     echo "IP Address: ${torrentApiIpAddress}"
     echo "Port: ${torrentApiPort}"
+    echo "URL Base: ${torrentApiUrlBase}"
     echo "Contents of /tmp/torrentApiCookie file:"
     cat /tmp/torrentApiCookie
     exit 1
@@ -240,7 +278,7 @@ qbittorent)
 ;;
 transmission)
   transmissionSessionId=$(curl -u "${torrentApiUser}:${torrentApiPass}" -fvks \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/transmission/rpc" 2>&1 \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}transmission/rpc" 2>&1 \
       | awk '/X-Transmission-Session-Id:/ { print $3 }')
   
   if ! [[ ${transmissionSessionId} =~ ^[[:alnum:]]{48}$ ]]; then
@@ -251,6 +289,7 @@ transmission)
     echo "Protocol: ${torrentApiProtocol}"
     echo "IP Address: ${torrentApiIpAddress}"
     echo "Port: ${torrentApiPort}"
+    echo "URL Base: ${torrentApiUrlBase}"
     echo "Transmission Session ID: ${transmissionSessionId}"
     exit 1
   fi
@@ -263,12 +302,12 @@ deluge)
   listeningPort=$(curl -b /tmp/torrentApiCookie -fks \
       --header "Content-Type: application/json" \
       --data "{\"method\": \"core.get_config\", \"params\": \"\", \"id\": 1}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json" \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json" \
       | jq -r .result.listen_ports[0])
 ;;
 qbittorent)
   listeningPort=$(curl -b /tmp/torrentApiCookie -fks \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/api/v2/app/preferences" \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/preferences" \
       | jq -r .listen_port)
 ;;
 transmission)
@@ -276,7 +315,7 @@ transmission)
       --header "Content-Type: application/json" \
       --header "x-transmission-session-id: ${transmissionSessionId}" \
       --data '{"method":"session-get"}' \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/transmission/rpc" \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}transmission/rpc" \
       | jq -r .arguments.[\"peer-port\"])
 ;;
 esac
@@ -291,6 +330,12 @@ fi
 if [ "${TELLAPORT_DRY_RUN}" = "true" ]; then
   echo "TellAPort: Dry Run Results:"
   echo "Torrent client detected: ${torrentClient}"
+  echo "User: ${torrentApiUser}"
+  # echo "Pass: ${torrentApiPass}"
+  echo "Protocol: ${torrentApiProtocol}"
+  echo "IP Address: ${torrentApiIpAddress}"
+  echo "Port: ${torrentApiPort}"
+  echo "URL Base: ${torrentApiUrlBase}"
   echo "Torrent client listening port: ${listeningPort}"
   echo "Gluetun forwarded port: ${forwardedPort}"
   exit 0
@@ -304,23 +349,23 @@ if [ ${forwardedPort} -ne ${listeningPort} ] 2> /dev/null; then
     curl -b /tmp/torrentApiCookie -fks \
       --header "Content-Type: application/json" \
       --data "{\"method\": \"core.set_config\", \"params\": [{\"random_port\": false}], \"id\": 1}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json"
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json"
     curl -b /tmp/torrentApiCookie -fks \
       --header "Content-Type: application/json" \
       --data "{\"method\": \"core.set_config\", \"params\": [{\"listen_ports\": [${forwardedPort},${forwardedPort}]}], \"id\": 1}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json"
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json"
   ;;
   qbittorent)
     curl -b /tmp/torrentApiCookie -fks \
       --data-urlencode "json={\"listen_port\":${forwardedPort},\"random_port\":false,\"upnp\":false}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/api/v2/app/setPreferences"
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/setPreferences"
   ;;
   transmission)
     curl -u "${torrentApiUser}:${torrentApiPass}" -fks \
       --header "Content-Type: application/json" \
       --header "x-transmission-session-id: ${transmissionSessionId}" \
       --data "{\"method\":\"session-set\",\"arguments\":{\"peer-port\":${forwardedPort},\"peer-port-random-on-start\":false,\"port-forwarding-enabled\": true}}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/transmission/rpc"
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}transmission/rpc"
   ;;
   esac
 fi
@@ -329,7 +374,7 @@ fi
 if nc -zvw10 ${vpnAdapterIpAddress} ${forwardedPort} &> /dev/null; then
   exit 0
 else
-  echo "TellAPort: WARNING: Torrent client listening port didn't respond on VPN adapter IP ${vpnAdapterIpAddress}:${forwardedPort}"
+  echo "TellAPort: WARNING: Torrent client (${torrentClient}) listening port didn't respond on VPN adapter IP ${vpnAdapterIpAddress}:${forwardedPort}"
   
   case $torrentClient in
   deluge)
@@ -339,7 +384,7 @@ else
     currentListeningIpAddress=$(curl -b /tmp/torrentApiCookie -fks \
       --header "Content-Type: application/json" \
       --data "{\"method\": \"core.get_config\", \"params\": \"\", \"id\": 1}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json" \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json" \
       | jq -r .result.listen_interface)
 
     # Set the listening IP to something else:
@@ -347,12 +392,12 @@ else
       curl -b /tmp/torrentApiCookie -fks \
         --header "Content-Type: application/json" \
         --data "{\"method\": \"core.set_config\", \"params\": [{\"listen_interface\": \"${vpnAdapterIpAddress}\"}], \"id\": 1}" \
-        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json"
+        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json"
     else
       curl -b /tmp/torrentApiCookie -fks \
         --header "Content-Type: application/json" \
         --data "{\"method\": \"core.set_config\", \"params\": [{\"listen_interface\": \"0.0.0.0\"}], \"id\": 1}" \
-        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json"
+        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json"
     fi
     
     sleep 1
@@ -361,25 +406,25 @@ else
     curl -b /tmp/torrentApiCookie -fks \
       --header "Content-Type: application/json" \
       --data "{\"method\": \"core.set_config\", \"params\": [{\"listen_interface\": \"${currentListeningIpAddress}\"}], \"id\": 1}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/json"
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json"
   ;;
   qbittorent)
     echo "TellAPort: Attempting to toggle listening IP address to work around issue."
 
     # Get the current torrent client listening IP:
     currentListeningIpAddress=$(curl -b /tmp/torrentApiCookie -fks \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/api/v2/app/preferences" \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/preferences" \
       | jq -r .current_interface_address)
 
     # Set the listening IP to something else:
     if [ ${currentListeningIpAddress} =  "0.0.0.0" ]; then
       curl -b /tmp/torrentApiCookie -fks \
         --data-urlencode "json={\"current_interface_address\":\"${vpnAdapterIpAddress}\"}" \
-        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/api/v2/app/setPreferences"
+        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/setPreferences"
     else
       curl -b /tmp/torrentApiCookie -fks \
         --data-urlencode "json={\"current_interface_address\":\"0.0.0.0\"}" \
-        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/api/v2/app/setPreferences"
+        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/setPreferences"
     fi
     
     sleep 1
@@ -387,7 +432,7 @@ else
     # Set the listening IP back:
     curl -b /tmp/torrentApiCookie -fks \
         --data-urlencode "json={\"current_interface_address\":\"${currentListeningIpAddress}\"}" \
-        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}/api/v2/app/setPreferences"
+        "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/setPreferences"
   ;;
   transmission)
     # It appears Transmission cannot change the listening address live, so we exit here:
