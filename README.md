@@ -39,7 +39,6 @@ services:
       - PGID=1000
       - TZ=Etc/UTC
       - WEBUI_PORT=8080
-      - TORRENTING_PORT=6881
       # This MUST be set in-script or in-environment:
       - TELLAPORT_ENABLED="true"
       # These should be set if login is required:
@@ -68,7 +67,6 @@ docker run -d \
   -e PGID=1000 \
   -e TZ=Etc/UTC \
   -e WEBUI_PORT=8080 \
-  -e TORRENTING_PORT=6881 \
   # This MUST be set in-script or in-environment:
   -e TELLAPORT_ENABLED="true" \
   # These should be set if login is required:
@@ -96,6 +94,7 @@ docker run -d \
 |`TELLAPORT_TORRENT_CLIENT`|`deluge` / `qbittorrent` / `transmission` - Which torrent client is in use. Will try to auto-detect if this isn't set.|
 |`TELLAPORT_USER` `TELLAPORT_PASS`|Only required if authentication is required for the torrent client. For qBittorrent if `127.0.0.1` is added to authentication bypass, these can be left blank.|
 |`TELLAPORT_IP`| **`127.0.0.1`** is the default. This is the IP address you want the torrent client API to be accessed from - this only needs to be set if you've set the torrent API to be bound to an IP that isn't 127.0.0.1.|
+|`tellaport.sh`| **`/`** - This sets a prefix *if* one is needed for the torrent client API. This is sometimes used if you use a "subfolder" style of reverse proxy. For example: <br> `https://domain.com/qbittorrent/` = `TELLAPORT_URL_BASE="/qbittorrent/"` <br> Defaults to "/" for every client **except** Transmission, which defaults to "/transmission/". If you've disabled the default subfolder URL for Transmission, you **must** set this to `/`. |
 |`TELLAPORT_PORT`| Web UI / API port for the torrent client - this will use the default ports when unset, or `WEBUI_PORT` if your container uses that environment variable. This is **not** the peer-listening port.|
 |`TELLAPORT_PROTOCOL`|**`http`** / `https` - Protocol used for communicating to the torrent client, the torrent clients default to HTTP. Only change this if you know you're using HTTPS instead.|
 |`TELLAPORT_TUN_IP`|IP address configured for the local tun0 / wg0 adapter, this is used to self-test if a port is able to listen on that specific IP. This can catch failing port bindings after VPN tunnel reconnection events, which is an issue that can affect Deluge and qBittorrent as of 2024-02-27. This attempts to auto-detect.|
