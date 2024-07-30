@@ -30,9 +30,9 @@
 # This is a "prefix" folder that shows up in the URL, which
 # is sometimes used if you use a "subfolder" style of reverse
 # proxy. An example of what this looks like in a full URL:
-#     https://domain.com/qbittorent/
+#     https://domain.com/qbittorrent/
 # An example of setting this for the above example:
-#     TELLAPORT_URL_BASE="/qbittorent/"
+#     TELLAPORT_URL_BASE="/qbittorrent/"
 # This defaults to "/" for every client EXCEPT Transmission,
 # which defaults to "/transmission/". If you have explicitly
 # disabled the default subfolder URL for Transmission, you
@@ -162,7 +162,7 @@ else
   # Defaults in case it's not set:
   case $torrentClient in
   deluge) torrentApiUrlBase="/";;
-  qbittorent) torrentApiUrlBase="/";;
+  qbittorrent) torrentApiUrlBase="/";;
   transmission) torrentApiUrlBase="/transmission/";;
   *)
     echo "TellAPort: Unable to set the torrent client API URL base automatically, please set TELLAPORT_URL_BASE."
@@ -181,7 +181,7 @@ elif ! [ -z "${WEBUI_PORT}" ] \
 else
   case $torrentClient in
   deluge) torrentApiPort="8112";;
-  qbittorent) torrentApiPort="8080";;
+  qbittorrent) torrentApiPort="8080";;
   transmission) torrentApiPort="9091";;
   *)
     echo "TellAPort: Unable to set the torrent client API port automatically, please set TELLAPORT_PORT."
@@ -258,7 +258,7 @@ deluge)
     exit 1
   fi
 ;;
-qbittorent)
+qbittorrent)
   if ! curl -c /tmp/torrentApiCookie -fks \
         --data "username=${torrentApiUser}" \
         --data-urlencode "password=${torrentApiPass}" \
@@ -305,7 +305,7 @@ deluge)
       "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json" \
       | jq -r .result.listen_ports[0])
 ;;
-qbittorent)
+qbittorrent)
   listeningPort=$(curl -b /tmp/torrentApiCookie -fks \
       "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/preferences" \
       | jq -r .listen_port)
@@ -355,7 +355,7 @@ if [ ${forwardedPort} -ne ${listeningPort} ] 2> /dev/null; then
       --data "{\"method\": \"core.set_config\", \"params\": [{\"listen_ports\": [${forwardedPort},${forwardedPort}]}], \"id\": 1}" \
       "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json"
   ;;
-  qbittorent)
+  qbittorrent)
     curl -b /tmp/torrentApiCookie -fks \
       --data-urlencode "json={\"listen_port\":${forwardedPort},\"random_port\":false,\"upnp\":false}" \
       "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}api/v2/app/setPreferences"
@@ -408,7 +408,7 @@ else
       --data "{\"method\": \"core.set_config\", \"params\": [{\"listen_interface\": \"${currentListeningIpAddress}\"}], \"id\": 1}" \
       "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}json"
   ;;
-  qbittorent)
+  qbittorrent)
     echo "TellAPort: Attempting to toggle listening IP address to work around issue."
 
     # Get the current torrent client listening IP:
