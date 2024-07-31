@@ -278,7 +278,7 @@ qbittorrent)
 ;;
 transmission)
   transmissionSessionId=$(curl -u "${torrentApiUser}:${torrentApiPass}" -fvks \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}transmission/rpc" 2>&1 \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}rpc" 2>&1 \
       | awk '/X-Transmission-Session-Id:/ { print $3 }')
   
   if ! [[ ${transmissionSessionId} =~ ^[[:alnum:]]{48}$ ]]; then
@@ -315,7 +315,7 @@ transmission)
       --header "Content-Type: application/json" \
       --header "x-transmission-session-id: ${transmissionSessionId}" \
       --data '{"method":"session-get"}' \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}transmission/rpc" \
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}rpc" \
       | jq -r .arguments.[\"peer-port\"])
 ;;
 esac
@@ -365,7 +365,7 @@ if [ ${forwardedPort} -ne ${listeningPort} ] 2> /dev/null; then
       --header "Content-Type: application/json" \
       --header "x-transmission-session-id: ${transmissionSessionId}" \
       --data "{\"method\":\"session-set\",\"arguments\":{\"peer-port\":${forwardedPort},\"peer-port-random-on-start\":false,\"port-forwarding-enabled\": true}}" \
-      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}transmission/rpc"
+      "${torrentApiProtocol}://${torrentApiIpAddress}:${torrentApiPort}${torrentApiUrlBase}rpc"
   ;;
   esac
 fi
