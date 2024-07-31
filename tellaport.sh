@@ -148,14 +148,14 @@ torrentApiUser=${TELLAPORT_USER:-}
 torrentApiPass=${TELLAPORT_PASS:-}
 
 # Set the base URL folder for the torrent API:
-if ! [ -z "${TELLAPORT_URL_BASE}" ] 2> /dev/null; then
+if ! [ -z "${TELLAPORT_URL_BASE}" ] &> /dev/null; then
   torrentApiUrlBase="${TELLAPORT_URL_BASE}"
   # Check for missing leading slash:
-  if ! [[ "${torrentApiUrlBase}" =~ ^/.*$ ]] 2> /dev/null; then
+  if ! [[ "${torrentApiUrlBase}" =~ ^/.*$ ]] &> /dev/null; then
     torrentApiUrlBase="/${torrentApiUrlBase}"
   fi
   # Check for missing trailing slash:
-  if ! [[ "${torrentApiUrlBase}" =~ ^.*/$ ]] 2> /dev/null; then
+  if ! [[ "${torrentApiUrlBase}" =~ ^.*/$ ]] &> /dev/null; then
     torrentApiUrlBase="${torrentApiUrlBase}/"
   fi
 else
@@ -173,10 +173,10 @@ fi
 
 # Set the torrent client API port:
 if ! [ -z "${TELLAPORT_PORT}" ] \
-   && [ "${TELLAPORT_PORT}" -eq "${TELLAPORT_PORT}" ] 2> /dev/null; then
+   && [ "${TELLAPORT_PORT}" -eq "${TELLAPORT_PORT}" ] &> /dev/null; then
   torrentApiPort="${TELLAPORT_PORT}"
 elif ! [ -z "${WEBUI_PORT}" ] \
-     && [ "${WEBUI_PORT}" -eq "${WEBUI_PORT}" ] 2> /dev/null; then
+     && [ "${WEBUI_PORT}" -eq "${WEBUI_PORT}" ] &> /dev/null; then
       torrentApiPort="${WEBUI_PORT}"
 else
   case $torrentClient in
@@ -222,13 +222,13 @@ forwardedPort=$(curl -fs http://127.0.0.1:8000/v1/openvpn/portforwarded \
     | jq -r .port)
 
 # Confirm the Gluetun port result is an integer:
-if [ "$forwardedPort" -ne "$forwardedPort" ] 2> /dev/null; then
+if [ "$forwardedPort" -ne "$forwardedPort" ] &> /dev/null; then
   echo "TellAPort: Failed to get a Gluetun forwarded port - is the Gluetun API accessible at 127.0.0.1:8000?"
   exit 1
 fi
 
 # Confirm the Gluetun port isn't 0:
-if [ "$forwardedport" -eq 0 ] 2> /dev/null; then
+if [ "$forwardedport" -eq 0 ] &> /dev/null; then
   echo "TellAPort: Gluetun VPN port is currently 0, waiting for it to update to a non-zero port number..."
   until ! [ "$forwardedport" -eq 0 ]
   do
@@ -321,7 +321,7 @@ transmission)
 esac
 
 # Confirm the listening port result is an integer:
-if [ "$forwardedPort" -ne "$forwardedPort" ] 2> /dev/null && ! [ -z "$forwardedPort" ] 2> /dev/null; then
+if [ "$forwardedPort" -ne "$forwardedPort" ] &> /dev/null && ! [ -z "$forwardedPort" ] &> /dev/null; then
   echo "TellAPort: Failed to get the current torrent client listening port, is the torrent client information correct? (Protocol, password, port, etc.)"
   exit 1
 fi
@@ -342,7 +342,7 @@ if [ "${TELLAPORT_DRY_RUN}" = "true" ]; then
 fi
 
 # Check if the ports match - if they don't match, update the port:
-if [ ${forwardedPort} -ne ${listeningPort} ] 2> /dev/null; then
+if [ ${forwardedPort} -ne ${listeningPort} ] &> /dev/null; then
   echo "TellAPort: Updating torrent client listening port ${listeningPort} to new forwarded port ${forwardedPort}"
   case $torrentClient in
   deluge)
