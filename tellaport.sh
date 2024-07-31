@@ -321,7 +321,7 @@ transmission)
 esac
 
 # Confirm the listening port result is an integer:
-if [ "$forwardedPort" -ne "$forwardedPort" ] 2> /dev/null; then
+if [ "$forwardedPort" -ne "$forwardedPort" ] 2> /dev/null && ! [ -z "$forwardedPort" ] 2> /dev/null; then
   echo "TellAPort: Failed to get the current torrent client listening port, is the torrent client information correct? (Protocol, password, port, etc.)"
   exit 1
 fi
