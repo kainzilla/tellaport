@@ -228,9 +228,9 @@ if [ "$forwardedPort" -ne "$forwardedPort" ] &> /dev/null; then
 fi
 
 # Confirm the Gluetun port isn't 0:
-if [ "$forwardedport" -eq 0 ] &> /dev/null; then
+if [ "$forwardedPort" -eq 0 ] &> /dev/null; then
   echo "TellAPort: Gluetun VPN port is currently 0, waiting for it to update to a non-zero port number..."
-  until ! [ "$forwardedport" -eq 0 ]
+  until ! [ "$forwardedPort" -eq 0 ]
   do
   sleep 10
   forwardedPort=$(curl -fs http://127.0.0.1:8000/v1/openvpn/portforwarded \
